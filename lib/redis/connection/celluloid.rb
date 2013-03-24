@@ -7,50 +7,9 @@ require "celluloid/io"
 class Redis
   module Connection
 
-    class CelluloidTCPSocket < ::Celluloid::IO::TCPSocket
-      include SocketMixin
-
-      # def self.connect(host, port, timeout)
-      #   Timeout.timeout(timeout) do
-      #     sock = new(host, port)
-      #     sock
-      #   end
-      # rescue Timeout::Error
-      #   raise TimeoutError
-      # end
-
-      def self.connect(host, port, timeout)
-        # Limit lookup to IPv4, as Redis doesn't yet do IPv6...
-        addr = ::Socket.getaddrinfo(host, nil, Socket::AF_INET)
-        sock = ::Socket.new(::Socket.const_get(addr[0][0]), Socket::SOCK_STREAM, 0)
-        sockaddr = ::Socket.pack_sockaddr_in(port, addr[0][3])
-
-        begin
-          sock.connect_nonblock(sockaddr)
-        rescue Errno::EINPROGRESS
-          selector = NIO::Selector.new
-          selector.register(sock, :rw)
-          if selector.select(timeout).nil?
-            raise TimeoutError
-          end
-
-          # if IO.select(nil, [sock], nil, timeout) == nil
-          #   raise TimeoutError
-          # end
-
-          begin
-            sock.connect_nonblock(sockaddr)
-          rescue Errno::EISCONN
-          end
-        end
-
-          sock
-      end
-    end
 
     class Celluloid
       include Redis::Connection::CommandHelper
-      include ::Celluloid
 
       MINUS    = "-".freeze
       PLUS     = "+".freeze
@@ -60,11 +19,9 @@ class Redis
 
       def self.connect(config)
         if config[:scheme] == "unix"
-          # sock = ::Celluloid::IO::UNIXSocket.connect(config[:path], config[:timeout])
-          sock = Celluloid::IO::UNIXSocket.new(config[:path])
+          sock = ::Celluloid::IO::UNIXSocket.open(config[:path])
         else
-          # sock = Celluloid::IO::TCPSocket.connect(config[:host], config[:port], config[:timeout])
-          sock = CelluloidTCPSocket.connect(config[:host], config[:port], config[:timeout])
+          sock = ::Celluloid::IO::TCPSocket.open(config[:host], config[:port])
         end
 
         instance = new(sock)
