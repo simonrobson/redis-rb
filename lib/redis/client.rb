@@ -390,6 +390,9 @@ class Redis
         when "synchrony"
           require "redis/connection/synchrony"
           driver = Connection::Synchrony
+        when "celluloid"
+          require "redis/connection/celluloid"
+          driver = Connection::Celluloid
         else
           raise "Unknown driver: #{driver}"
         end
