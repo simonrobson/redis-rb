@@ -120,5 +120,31 @@ module Lint
         assert_equal "1", r.brpoplpush("{zap}foo", "{zap}bar", 1)
       end
     end
+
+    driver(:ruby, :hiredis) do
+      def test_blpop_socket_timeout
+        mock(:delay => 1 + OPTIONS[:timeout] * 2) do |r|
+          assert_raises(Redis::TimeoutError) do
+            r.blpop("{zap}foo", :timeout => 1)
+          end
+        end
+      end
+
+      def test_brpop_socket_timeout
+        mock(:delay => 1 + OPTIONS[:timeout] * 2) do |r|
+          assert_raises(Redis::TimeoutError) do
+            r.brpop("{zap}foo", :timeout => 1)
+          end
+        end
+      end
+
+      def test_brpoplpush_socket_timeout
+        mock(:delay => 1 + OPTIONS[:timeout] * 2) do |r|
+          assert_raises(Redis::TimeoutError) do
+            r.brpoplpush("{zap}foo", "{zap}bar", :timeout => 1)
+          end
+        end
+      end
+    end
   end
 end

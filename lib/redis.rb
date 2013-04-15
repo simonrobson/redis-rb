@@ -524,7 +524,7 @@ class Redis
 
     synchronize do |client|
       client.call([:sort, key] + args) do |reply|
-        if get.size > 1
+        if get.size > 1 && !store
           if reply
             reply.each_slice(get.size).to_a
           end
@@ -986,7 +986,9 @@ class Redis
     timeout = options[:timeout] || 0
 
     synchronize do |client|
-      client.call_without_timeout([cmd, keys, timeout])
+      command = [cmd, keys, timeout]
+      timeout += client.timeout if timeout > 0
+      client.call_with_timeout(command, timeout)
     end
   end
 
@@ -1052,7 +1054,9 @@ class Redis
     timeout = options[:timeout] || 0
 
     synchronize do |client|
-      client.call_without_timeout([:brpoplpush, source, destination, timeout])
+      command = [:brpoplpush, source, destination, timeout]
+      timeout += client.timeout if timeout > 0
+      client.call_with_timeout(command, timeout)
     end
   end
 
